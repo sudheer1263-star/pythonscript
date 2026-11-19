@@ -1,7 +1,20 @@
-# Simple Python Program
+import os
+from html import escape
 
-name = input("Enter your name: ")
+from flask import Flask, request
 
-print("Hello,", name)
-print("kukatpally gachibowli ameerpet!")
-print("Google cloud storage!")
+app = Flask(__name__)
+
+
+@app.route("/")
+def hello():
+    name = escape(request.args.get("name", "World"))
+    return (
+        f"<h1>Hello, {name}!</h1>"
+        "<p>Hitechcity gachibowli ameerpet!</p>"
+        "<p>Google cloud storage!</p>"
+    )
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
