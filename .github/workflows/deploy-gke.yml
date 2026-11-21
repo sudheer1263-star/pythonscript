@@ -1,0 +1,63 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: nifty-charter-463213-u8
+  REGION: asia-south1
+  REPOSITORY: python-repo
+  IMAGE_NAME: python-app
+  CLUSTER: your-gke-cluster
+  NAMESPACE: default
+  IMAGE: asia-south1-docker.pkg.dev/nifty-charter-463213-u8/python-repo/python-app:${{ github.sha }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE auth plugin
+        run: gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          docker build -t ${{ env.IMAGE }} .
+          docker push ${{ env.IMAGE }}
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.CLUSTER }} \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }}
+
+      - name: Deploy manifests
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n ${{ env.NAMESPACE }} apply -k k8s
+          kubectl -n ${{ env.NAMESPACE }} set image deployment/python-app python-app=${{ env.IMAGE }}
+          kubectl -n ${{ env.NAMESPACE }} rollout status deployment/python-app
+
+      - name: Show service
+        run: kubectl -n ${{ env.NAMESPACE }} get svc python-app -o wide

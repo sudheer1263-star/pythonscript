@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: IMAGE_PLACEHOLDER
+    newName: asia-south1-docker.pkg.dev/nifty-charter-463213-u8/python-repo/python-app
+    newTag: latest
