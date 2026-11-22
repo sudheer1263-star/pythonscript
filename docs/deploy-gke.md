@@ -13,9 +13,29 @@ This repo now includes code-based deployment assets for GKE:
 - GCP project with billing enabled
 - APIs enabled: `artifactregistry.googleapis.com`, `container.googleapis.com`
 - Artifact Registry Docker repo exists (default in config: `python-repo`)
-- GKE cluster exists
+- GKE cluster exists, and its name/region match `env.CLUSTER` / `env.REGION` in the workflow
 - GCP service account key in GitHub secret `GCP_SA_KEY` with permissions to push images and deploy to GKE (e.g. Artifact Registry Writer + Kubernetes Engine Developer, or narrower roles)
 - GKE node service account has `roles/artifactregistry.reader` on the Artifact Registry repo
+
+### One-time GCP setup (run as a project owner/admin)
+
+The CI service account cannot enable APIs or grant itself roles, so run these manually:
+
+```bash
+# Required by `gcloud container clusters get-credentials`; without it you get
+# "403 ... Kubernetes Engine API has not been used in project ... or it is disabled".
+gcloud services enable container.googleapis.com --project=nifty-charter-463213-u8
+
+# Lets the CI service account get cluster credentials and deploy workloads.
+gcloud projects add-iam-policy-binding nifty-charter-463213-u8 \
+  --member="serviceAccount:artifact-registry-writer@nifty-charter-463213-u8.iam.gserviceaccount.com" \
+  --role="roles/container.developer"
+
+# Confirm the cluster name/location used in the workflow.
+gcloud container clusters list --project=nifty-charter-463213-u8 --region=asia-south1
+```
+
+Allow a few minutes for API activation and IAM changes to propagate, then re-run the workflow. If an enablement was recent, simply re-running may fix the 403.
 
 Grant node pull access if needed:
 
@@ -52,7 +72,7 @@ Before using it, set:
 - `env.PROJECT_ID`, `REGION`, `REPOSITORY`, `IMAGE_NAME`, `NAMESPACE` as needed
 - GitHub secret `GCP_SA_KEY`
 
-It triggers on pushes to `main` and manual `workflow_dispatch`. It builds/pushes `.../python-app:${{ github.sha }}` and deploys that exact image.
+It triggers on pushes to `main`, `Feature-*`/`feature/*` branches, and manual `workflow_dispatch`. It builds/pushes `.../python-app:${{ github.sha }}` and deploys that exact image.
 
 ## Manual kubectl deploy
 
