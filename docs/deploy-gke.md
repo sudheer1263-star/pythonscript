@@ -90,4 +90,6 @@ kubectl get svc python-app
 
 - `k8s/kustomization.yaml` contains a default image; CI/local script overrides it with `kubectl set image` for immutable SHA/tag deploys.
 - The app listens on `$PORT` (default 8080), matching the container and probes.
+- CI uses `google-github-actions/get-gke-credentials@v3`, which writes a kubeconfig with a short-lived token. Do not replace it with `gcloud container clusters get-credentials` + `gke-gcloud-auth-plugin`: with gcloud >= 571 and `CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE` set by the auth action, `gcloud config config-helper` crashes with `'Credentials' object has no attribute 'private_key_id'` and every `kubectl` command fails.
+- The local script still uses `gcloud container clusters get-credentials`, so it needs `gke-gcloud-auth-plugin` installed locally.
 - Existing Cloud Run workflows were left in place; use `deploy-gke.yml` for GKE. Consider disabling overlapping workflows to avoid unintended deploys on `main`.
