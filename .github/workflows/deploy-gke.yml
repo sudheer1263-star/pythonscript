@@ -44,9 +44,10 @@ jobs:
             echo "::error::CLUSTER is still the placeholder 'your-gke-cluster'. Set env.CLUSTER in .github/workflows/deploy-gke.yml to your real GKE cluster name."
             exit 1
           fi
-          if ! gcloud services list --enabled --project="${{ env.PROJECT_ID }}" \
-              --format="value(config.name)" | grep -qx container.googleapis.com; then
-            echo "::error::Kubernetes Engine API is not enabled in ${{ env.PROJECT_ID }}. A project admin must run: gcloud services enable container.googleapis.com --project=${{ env.PROJECT_ID }}"
+          if ! gcloud container clusters describe "${{ env.CLUSTER }}" \
+              --region="${{ env.REGION }}" --project="${{ env.PROJECT_ID }}" \
+              --format="value(name)" >/dev/null 2>&1; then
+            echo "::error::Cannot access cluster '${{ env.CLUSTER }}' in ${{ env.REGION }}. Check that the Kubernetes Engine API is enabled, the cluster name/region are correct, and the CI service account has roles/container.developer."
             exit 1
           fi
 
