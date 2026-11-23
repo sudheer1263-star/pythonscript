@@ -88,6 +88,7 @@ kubectl get svc python-app
 
 ## Notes
 
+- `Dockerfile` uses a multi-stage build: dependencies are installed into `/install` in the builder stage, then copied into a clean runtime image. The runtime stage contains no pip/build cache.
 - `k8s/kustomization.yaml` contains a default image; CI/local script overrides it with `kubectl set image` for immutable SHA/tag deploys.
 - The app listens on `$PORT` (default 8080), matching the container and probes.
 - CI uses `google-github-actions/get-gke-credentials@v3`, which writes a kubeconfig with a short-lived token. Do not replace it with `gcloud container clusters get-credentials` + `gke-gcloud-auth-plugin`: with gcloud >= 571 and `CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE` set by the auth action, `gcloud config config-helper` crashes with `'Credentials' object has no attribute 'private_key_id'` and every `kubectl` command fails.
